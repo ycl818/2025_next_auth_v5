@@ -13,9 +13,7 @@ export default function Home() {
   return (
     <>
       <main
-        className="flex h-full flex-col items-center justify-center 
-    
-    "
+        className="flex h-full flex-col items-center justify-center"
         style={{
           backgroundImage: `
           radial-gradient(circle at 50% 100%, rgba(253, 224, 71, 0.4) 0%, transparent 60%),
@@ -35,16 +33,11 @@ export default function Home() {
           </h1>
           <p className="text-white text-lg">A simple authentication service</p>
           <div>
-            <LoginButton>
+            <LoginButton asChild>
               <Button variant="secondary" size="lg">
                 Sign in
               </Button>
             </LoginButton>
-            {/* <LoginButton asChild>
-              <Button variant="secondary" size="lg">
-                Sign in
-              </Button>
-            </LoginButton> */}
           </div>
         </div>
       </main>

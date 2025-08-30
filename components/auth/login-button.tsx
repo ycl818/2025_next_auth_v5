@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-interface LoginBottonProps {
+interface LoginButtonProps {
   children: React.ReactNode;
   mode?: "modal" | "redirect";
   asChild?: boolean;
@@ -12,7 +12,7 @@ export function LoginButton({
   children,
   mode = "redirect",
   asChild,
-}: LoginBottonProps) {
+}: LoginButtonProps) {
   const router = useRouter();
 
   const onClick = () => {
@@ -24,7 +24,13 @@ export function LoginButton({
   }
 
   return (
-    <span className="cursor-pointer" onClick={onClick}>
+    <span
+      className="cursor-pointer"
+      onClick={onClick}
+      tabIndex={0}
+      role="button"
+      aria-label="Login"
+    >
       {children}
     </span>
   );
