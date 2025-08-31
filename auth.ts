@@ -1,3 +1,4 @@
+import { UserRole } from "./lib/generated/prisma";
 import NextAuth from "next-auth";
 import authConfig from "@/auth.config";
 
@@ -17,7 +18,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       if (token.role && session.user) {
-        session.user.role = token.role;
+        session.user.role = token.role as UserRole;
       }
 
       return session;
