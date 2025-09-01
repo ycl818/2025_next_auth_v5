@@ -6,6 +6,8 @@ import { db } from "@/lib/db";
 
 import { RegisterSchema } from "@/schemas";
 import { getUserByEmail } from "@/data/user";
+import { generateVerificationToken } from "@/lib/tokens";
+import { sendVerificationEmail } from "@/lib/mail";
 
 export const register = async (values: z.infer<typeof RegisterSchema>) => {
   const validatedFields = RegisterSchema.safeParse(values);
@@ -34,7 +36,9 @@ export const register = async (values: z.infer<typeof RegisterSchema>) => {
     },
   });
 
-  // TODO: Send verification token email
+  const verficationToken = await generateVerificationToken(email);
 
-  return { success: "成功申辦會員" };
+  await sendVerificationEmail(verficationToken.email, verficationToken.token);
+
+  return { success: "Confirm Email has sent 信箱確認信已寄出" };
 };
