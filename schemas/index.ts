@@ -1,5 +1,11 @@
 import * as z from "zod";
 
+export const NewPasswordSchema = z.object({
+  password: z.string().min(6, {
+    message: "密碼至少6位數",
+  }),
+});
+
 export const ResetSchema = z.object({
   email: z.string().email({ message: "信箱格式錯誤" }),
 });

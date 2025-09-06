@@ -22,6 +22,8 @@ export const reset = async (values: z.infer<typeof ResetSchema>) => {
     return { error: "此信箱不存在" };
   }
 
+  // TODO: also need to check oAuth login user does not need to sent email
+
   const passwordResetToken = await generatePasswordResetToken(email);
   await sendPasswordResetEmail(
     passwordResetToken.email,
