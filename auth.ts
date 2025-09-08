@@ -5,6 +5,7 @@ import authConfig from "@/auth.config";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 import { getUserById } from "./data/user";
+import { getTwoFactorConfirmationByUserId } from "./data/two-factor-confirmation";
 
 // signIn, signOut methods can use in Server action
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -32,8 +33,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (!existingUser?.emailVerified) return false;
 
       // TODO: ADD 2FA check
+      if (existingUser.isTwoFactorEnabled) {
+        const twoFactorConfirmation = await getTwoFactorConfirmationByUserId(
+          existingUser.id
+        );
 
-      return true;
+        if (!twoFactorConfirmation) return false;
+
+        // Delete two factor confirmation for next sign in  登入後就刪除掉confrimation
+        await db.twoFactorConfirmation.delete({
+          where: { id: twoFactorConfirmation.id },
+        });
+      }
+
+      return true; // 讓使用者登入
     },
     async session({ token, session }) {
       console.log({ sesstionToken: token });

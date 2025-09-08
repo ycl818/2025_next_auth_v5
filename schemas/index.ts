@@ -15,6 +15,7 @@ export const LoginSchema = z.object({
   password: z.string().min(1, {
     message: "密碼不得為空",
   }),
+  code: z.optional(z.string()),
 });
 
 export const RegisterSchema = z.object({

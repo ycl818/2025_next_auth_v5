@@ -1,9 +1,16 @@
 "use server";
 
 import { signIn } from "@/auth";
+import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation";
+import { getTwoFactorTokenByEmail } from "@/data/two-factor-token";
 import { getUserByEmail } from "@/data/user";
-import { sendVerificationEmail } from "@/lib/mail";
-import { generateVerificationToken } from "@/lib/tokens";
+import { db } from "@/lib/db";
+import bcrypt from "bcryptjs";
+import { sendTwoFactorTokenEmail, sendVerificationEmail } from "@/lib/mail";
+import {
+  generateTwoFactorToken,
+  generateVerificationToken,
+} from "@/lib/tokens";
 import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import { LoginSchema } from "@/schemas";
 import { AuthError } from "next-auth";
@@ -16,7 +23,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
     return { error: "Invalid fields" };
   }
 
-  const { email, password } = validatedFields.data;
+  const { email, password, code } = validatedFields.data;
 
   const existingUser = await getUserByEmail(email);
 
@@ -26,6 +33,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
     };
   }
 
+  // 信箱還沒驗證過的話 會寄驗證email信件
   if (!existingUser.emailVerified) {
     const verficationToken = await generateVerificationToken(
       existingUser.email
@@ -34,6 +42,64 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
     await sendVerificationEmail(verficationToken.email, verficationToken.token);
 
     return { success: "Confirmation email sent!" };
+  }
+
+  // TODO 應該要先檢查 密碼有沒有登入對，對了才去send 2FA email
+  const passwordMatch = await bcrypt.compare(password, existingUser.password);
+  if (!passwordMatch) return { error: "登入密碼輸入錯誤!" };
+
+  if (existingUser.isTwoFactorEnabled && existingUser.email) {
+    if (code) {
+      // Todo: verify code  假如收到前端code data就做驗證，沒有的話就寄送code
+
+      const twoFactorToken = await getTwoFactorTokenByEmail(existingUser.email);
+
+      if (!twoFactorToken) {
+        return { error: "Invalid code!" };
+      }
+
+      if (twoFactorToken.token !== code) {
+        return { error: "驗證碼錯誤!" };
+      }
+
+      const hasExpired = new Date(twoFactorToken.expires) < new Date();
+
+      if (hasExpired) {
+        return { error: "驗證碼已過期! 請重新登入取得新的驗證碼" };
+      }
+
+      // TODo 可能要新加入驗整瑪過期的話 回到login page
+
+      await db.twoFactorToken.delete({
+        where: { id: twoFactorToken.id },
+      });
+
+      // 找是否存在confirmation
+      const existingConfirmation = await getTwoFactorConfirmationByUserId(
+        existingUser.id
+      );
+
+      // 有的話先刪掉
+      if (existingConfirmation) {
+        await db.twoFactorConfirmation.delete({
+          where: { id: existingConfirmation.id },
+        });
+      }
+
+      // 會先創建confirmation在try to login 前
+      await db.twoFactorConfirmation.create({
+        data: {
+          userId: existingUser.id,
+        },
+      });
+      // 接著後面就會到sign in callback auth.ts
+    } else {
+      // TODO 這裡一有2FA 一開始產生token的地方
+      const twoFactorToken = await generateTwoFactorToken(existingUser.email);
+      await sendTwoFactorTokenEmail(twoFactorToken.email, twoFactorToken.token);
+
+      return { twoFactor: true }; // for frontend display
+    }
   }
 
   try {
