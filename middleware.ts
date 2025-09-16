@@ -17,6 +17,8 @@ export default auth((req) => {
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
 
+  // TODO isAdmin route
+
   if (isApiAuthRoute) {
     return null;
   }

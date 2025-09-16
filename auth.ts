@@ -49,6 +49,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return true; // 讓使用者登入
     },
     async session({ token, session }) {
+      // session 會跟token一樣， token那邊先加入field
+
       console.log({ sesstionToken: token });
 
       if (token.sub && session.user) {
@@ -57,19 +59,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       if (token.role && session.user) {
-        session.user.role = token.role as UserRole;
+        session.user.role = token.role as UserRole; // user.role的role 會有typescript error所以才要extend next-auth.d.ts
       }
+
+      if (session.user) {
+        session.user.isTwoFactorEnabled = token.isTwoFactorEnabled as boolean;
+      }
+
+      // if (token.hello && session.user) {
+      //   session.user.hello = token.hello;
+      // }
 
       return session;
     },
     async jwt({ token }) {
       if (!token.sub) return token; // which means user has logged out
 
-      const existingUser = await getUserById(token.sub);
+      const existingUser = await getUserById(token.sub); // 這樣可以去db 取自己要的field存到token, pass to session
 
       if (!existingUser) return token;
 
       token.role = existingUser.role;
+      token.isTwoFactorEnabled = existingUser.isTwoFactorEnabled;
+      // token.hello = "hello";
 
       return token;
     },
